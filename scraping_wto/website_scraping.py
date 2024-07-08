@@ -16,9 +16,15 @@ from scraping_wto.selenium_utils import (
     espera_elemento_clicavel,
     espera_elemento_visivel,
 )
-from scraping_wto.utils import normaliza_nomes, tempo_espera_aleatorio
+from scraping_wto.utils import (
+    get_path_projeto,
+    normaliza_nomes,
+    tempo_espera_aleatorio,
+)
 
-DIR_DOWNLOAD_ARQUIVOS = "data/bronze/tl"
+path_projeto = get_path_projeto()
+assert isinstance(path_projeto, Path)
+DIR_DOWNLOAD_ARQUIVOS = str(path_projeto / "data/bronze/tl/zip")
 
 
 class ScriptsJS:
@@ -106,8 +112,12 @@ def clica_consulta_pais(navegador: WebDriver, pais: str) -> None:
     except NoSuchElementException:
         return None
 
-    elemento_clicavel = web_element_pais.find_element(by="tag name", value="input")
-    navegador.execute_script("arguments[0].scrollIntoView(true);", elemento_clicavel)
+    elemento_clicavel = web_element_pais.find_element(
+        by="tag name", value="input"
+    )
+    navegador.execute_script(
+        "arguments[0].scrollIntoView(true);", elemento_clicavel
+    )
     sleep(0.5)
     elemento_clicavel.click()
     sleep(1)
@@ -123,7 +133,9 @@ def get_info_ultima_consulta_pais(
         script=JS_SCRIPTS.get_info_paises()
     )
 
-    return Consulta(COUNTRY=pais, YEAR=year, IMPORTS=imports, NOMENCLATURE=nomenclature)
+    return Consulta(
+        COUNTRY=pais, YEAR=year, IMPORTS=imports, NOMENCLATURE=nomenclature
+    )
 
 
 def abrindo_popup_query(navegador: WebDriver) -> None:
@@ -154,10 +166,14 @@ def em_espera(navegador: WebDriver) -> None:
         "css selector",
         "html body form#aspnetForm div#ctl00_UpdateProgressObject",
     )
-    web_element_em_progresso = navegador.find_element(*localizador_em_progresso)
+    web_element_em_progresso = navegador.find_element(
+        *localizador_em_progresso
+    )
 
     while web_element_em_progresso.get_attribute("aria-hidden") == "false":
-        web_element_em_progresso = navegador.find_element(*localizador_em_progresso)
+        web_element_em_progresso = navegador.find_element(
+            *localizador_em_progresso
+        )
 
     return None
 
@@ -289,7 +305,9 @@ def info_report_export(navegador: WebDriver, pais: str) -> None:
 
 
 def clica_botao_refresh(navegador: WebDriver) -> Optional[Callable]:
-    xpath_botao_reload = '//input[@id="ctl00_c_viewFile_dgExportFile_ctl02_bReload"]'
+    xpath_botao_reload = (
+        '//input[@id="ctl00_c_viewFile_dgExportFile_ctl02_bReload"]'
+    )
     localizador_botao_reload = ("xpath", xpath_botao_reload)
 
     elemento_botao_reload = navegador.find_elements(*localizador_botao_reload)
@@ -319,13 +337,17 @@ def get_link_download_pais(navegador: WebDriver, pais: str) -> str:
         "xpath",
         '//*[@id="ctl00_c_viewFile_dgExportFile"]',
     )
-    webelemnt_tabela_relatorios = navegador.find_element(*localizador_tabela_relatorios)
+    webelemnt_tabela_relatorios = navegador.find_element(
+        *localizador_tabela_relatorios
+    )
 
     localizaodr_link_download = (
         "xpath",
         f"//a[contains(@href, '{nome_pais_normalizado}')]",
     )
-    elemento_link = webelemnt_tabela_relatorios.find_element(*localizaodr_link_download)
+    elemento_link = webelemnt_tabela_relatorios.find_element(
+        *localizaodr_link_download
+    )
 
     link_ = elemento_link.get_attribute("href")
 
@@ -358,16 +380,22 @@ def download_arq(url_download: str, target_directory: str) -> bool:
             print(f"✅ Arquivo salvo em: {path_arquivo}")
             return True
         else:
-            print(f"❌ Download do arquivo falhou. Status code: {response.status_code}")
+            print(
+                f"❌ Download do arquivo falhou. Status code: {response.status_code}"
+            )
             return False
     except requests.exceptions.Timeout:
         print(f"💀 TimeoutError: Download falhou: {url_download}")
         return False
 
 
-def deleta_relatorio_pais(navegador: WebDriver, pais: str) -> Optional[Callable]:
+def deleta_relatorio_pais(
+    navegador: WebDriver, pais: str
+) -> Optional[Callable]:
     localizador_linhas_tabela_paises = ("css selector", ".table2, .table3")
-    elementos_linha = navegador.find_elements(*localizador_linhas_tabela_paises)
+    elementos_linha = navegador.find_elements(
+        *localizador_linhas_tabela_paises
+    )
 
     nome_pais_normalizado = normaliza_nomes(pais)
     f_filter = lambda elemento: nome_pais_normalizado in elemento.text
@@ -396,13 +424,17 @@ def deleta_relatorio_pais(navegador: WebDriver, pais: str) -> Optional[Callable]
     return deleta_relatorio_pais(navegador=navegador, pais=pais)
 
 
-def download_consulta(navegador: WebDriver, consulta_a_ser_feita: Consulta) -> bool:
+def download_consulta(
+    navegador: WebDriver, consulta_a_ser_feita: Consulta
+) -> bool:
     try:
         seleciona_pais(navegador, consulta_a_ser_feita.COUNTRY)
         info_report_export(navegador, consulta_a_ser_feita.COUNTRY)
         tempo_espera_aleatorio()
         clica_botao_refresh(navegador)
-        link_download = get_link_download_pais(navegador, consulta_a_ser_feita.COUNTRY)
+        link_download = get_link_download_pais(
+            navegador, consulta_a_ser_feita.COUNTRY
+        )
 
         fez_download = False
         contador_fracasso = 0

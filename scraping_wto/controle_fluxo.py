@@ -20,7 +20,9 @@ PATH_CONSULTAS_A_SEREM_FEITAS = path_projeto / "temp/consultas_a_fazer.pkl"
 
 def consulta_ja_feita(consulta: Consulta) -> bool:
     df_log = (
-        pd.read_csv(PATH_LOG_CONSULTAS_FEITAS, sep=";").drop(columns=["DATA_CONSULTA"])
+        pd.read_csv(PATH_LOG_CONSULTAS_FEITAS, sep=";").drop(
+            columns=["DATA_CONSULTA"]
+        )
         if Path(PATH_LOG_CONSULTAS_FEITAS).exists()
         else pd.DataFrame(
             columns=[
@@ -34,11 +36,14 @@ def consulta_ja_feita(consulta: Consulta) -> bool:
     )
 
     consultas_feitas = (
-        Consulta(**consulta_feita.to_dict()) for _, consulta_feita in df_log.iterrows()
+        Consulta(**consulta_feita.to_dict())
+        for _, consulta_feita in df_log.iterrows()
     )
 
     if consulta in consultas_feitas:
-        data_consulta_log = df_log[df_log["COUNTRY"] == consulta.COUNTRY].iloc[0, 1]
+        data_consulta_log = df_log[df_log["COUNTRY"] == consulta.COUNTRY].iloc[
+            0, 1
+        ]
         if data_consulta_log < consulta.YEAR:
             return False
         return True
@@ -51,7 +56,9 @@ def erro_consulta(pais: str) -> None:
     data_consulta = datetime.now().strftime(format=FORMATO_DATA)
 
     df_log = (
-        pd.read_csv(PATH_LOG_ERRO_CONSULTA, sep=";").drop(columns=["DATA_CONSULTA"])
+        pd.read_csv(PATH_LOG_ERRO_CONSULTA, sep=";").drop(
+            columns=["DATA_CONSULTA"]
+        )
         if Path(PATH_LOG_ERRO_CONSULTA).exists()
         else pd.DataFrame(
             data=[[pais, data_consulta]], columns=["COUNTRY", "DATA_CONSULTA"]
@@ -72,7 +79,9 @@ def get_fila() -> Optional[list[Consulta]]:
 
 
 def add_na_fila(consulta: Consulta) -> None:
-    Path(PATH_CONSULTAS_A_SEREM_FEITAS).parent.mkdir(exist_ok=True, parents=True)
+    Path(PATH_CONSULTAS_A_SEREM_FEITAS).parent.mkdir(
+        exist_ok=True, parents=True
+    )
 
     consultas = [] if get_fila() is None else get_fila()
 
@@ -122,9 +131,13 @@ def log_consulta_realizada_sucesso(consulta: Consulta) -> None:
     )
 
     if consulta.COUNTRY in df_log["COUNTRY"].values:
-        df_log = df_log[df_log["COUNTRY"] != consulta.COUNTRY].reset_index(drop=True)
+        df_log = df_log[df_log["COUNTRY"] != consulta.COUNTRY].reset_index(
+            drop=True
+        )
 
-    df_log = df_log._append(linha_consulta, ignore_index=True).sort_values(by="COUNTRY")
+    df_log = df_log._append(linha_consulta, ignore_index=True).sort_values(
+        by="COUNTRY"
+    )
 
     df_log.to_csv(PATH_LOG_CONSULTAS_FEITAS, sep=";", index=False)
 
