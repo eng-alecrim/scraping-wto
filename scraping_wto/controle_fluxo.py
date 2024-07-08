@@ -1,21 +1,35 @@
-from scraping_wto.schemas import Consulta
+import pickle
+from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
+import pandas as pd
+
+from scraping_wto.schemas import Consulta
+from scraping_wto.utils import get_path_projeto
+
+path_projeto = get_path_projeto()
+assert isinstance(path_projeto, Path)
+
+
 FORMATO_DATA = "%Y-%m-%d"
-PATH_LOG_CONSULTAS_FEITAS = "log/consultas_feitas.csv"
-PATH_LOG_ERRO_CONSULTA = "log/consultas_erros.csv"
-PATH_CONSULTAS_A_SEREM_FEITAS = "temp/consultas_a_fazer.pkl"
+PATH_LOG_CONSULTAS_FEITAS = path_projeto / "log/consultas_feitas.csv"
+PATH_LOG_ERRO_CONSULTA = path_projeto / "log/consultas_erros.csv"
+PATH_CONSULTAS_A_SEREM_FEITAS = path_projeto / "temp/consultas_a_fazer.pkl"
 
 
 def consulta_ja_feita(consulta: Consulta) -> bool:
-    import pandas as pd
-    from pathlib import Path
-
     df_log = (
         pd.read_csv(PATH_LOG_CONSULTAS_FEITAS, sep=";").drop(columns=["DATA_CONSULTA"])
         if Path(PATH_LOG_CONSULTAS_FEITAS).exists()
         else pd.DataFrame(
-            columns=["COUNTRY", "YEAR", "IMPORTS", "NOMENCLATURE", "DATA_CONSULTA"]
+            columns=[
+                "COUNTRY",
+                "YEAR",
+                "IMPORTS",
+                "NOMENCLATURE",
+                "DATA_CONSULTA",
+            ]
         )
     )
 
@@ -27,14 +41,11 @@ def consulta_ja_feita(consulta: Consulta) -> bool:
         data_consulta_log = df_log[df_log["COUNTRY"] == consulta.COUNTRY].iloc[0, 1]
         if data_consulta_log < consulta.YEAR:
             return False
-    return True
+        return True
+    return False
 
 
 def erro_consulta(pais: str) -> None:
-    from datetime import datetime
-    import pandas as pd
-    from pathlib import Path
-
     Path(PATH_LOG_ERRO_CONSULTA).parent.mkdir(exist_ok=True, parents=True)
 
     data_consulta = datetime.now().strftime(format=FORMATO_DATA)
@@ -53,9 +64,6 @@ def erro_consulta(pais: str) -> None:
 
 
 def get_fila() -> Optional[list[Consulta]]:
-    from pathlib import Path
-    import pickle
-
     if Path(PATH_CONSULTAS_A_SEREM_FEITAS).exists():
         with open(PATH_CONSULTAS_A_SEREM_FEITAS, "rb") as pkl_f:
             consultas = pickle.load(file=pkl_f)
@@ -64,9 +72,6 @@ def get_fila() -> Optional[list[Consulta]]:
 
 
 def add_na_fila(consulta: Consulta) -> None:
-    from pathlib import Path
-    import pickle
-
     Path(PATH_CONSULTAS_A_SEREM_FEITAS).parent.mkdir(exist_ok=True, parents=True)
 
     consultas = [] if get_fila() is None else get_fila()
@@ -80,8 +85,6 @@ def add_na_fila(consulta: Consulta) -> None:
 
 
 def remove_da_fila(consulta: Consulta) -> None:
-    import pickle
-
     consultas = get_fila()
 
     if consultas is None:
@@ -96,10 +99,6 @@ def remove_da_fila(consulta: Consulta) -> None:
 
 
 def log_consulta_realizada_sucesso(consulta: Consulta) -> None:
-    from datetime import datetime
-    from pathlib import Path
-    import pandas as pd
-
     Path(PATH_LOG_CONSULTAS_FEITAS).parent.mkdir(exist_ok=True, parents=True)
 
     data_consulta = datetime.now().strftime(format=FORMATO_DATA)
@@ -112,7 +111,13 @@ def log_consulta_realizada_sucesso(consulta: Consulta) -> None:
         pd.read_csv(PATH_LOG_CONSULTAS_FEITAS, sep=";")
         if Path(PATH_LOG_CONSULTAS_FEITAS).exists()
         else pd.DataFrame(
-            columns=["COUNTRY", "YEAR", "IMPORTS", "NOMENCLATURE", "DATA_CONSULTA"]
+            columns=[
+                "COUNTRY",
+                "YEAR",
+                "IMPORTS",
+                "NOMENCLATURE",
+                "DATA_CONSULTA",
+            ]
         )
     )
 

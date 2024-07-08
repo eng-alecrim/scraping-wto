@@ -1,13 +1,19 @@
+import subprocess
+from pathlib import Path
+
+import requests
+from selenium import webdriver
+from selenium.webdriver.firefox.service import Service as GeckoService
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
+from scraping_wto.utils import get_path_projeto
 
 
 def download_geckodriver(
     url_download: str = "https://github.com/mozilla/geckodriver/releases/download/v0.34.0/geckodriver-v0.34.0-linux64.tar.gz",
 ) -> None:
-    from pathlib import Path
-    import requests
-    from scraping_wto.utils import get_path_projeto
-
     dir_projeto = get_path_projeto()
     assert isinstance(dir_projeto, Path)
 
@@ -31,18 +37,15 @@ def download_geckodriver(
 def navegador_firefox(
     use_default_firefox_bin: bool = True, headless: bool = True
 ) -> WebDriver:
-    from pathlib import Path
-    from scraping_wto.utils import get_path_projeto
-    from selenium import webdriver
-    from selenium.webdriver.firefox.service import Service as GeckoService
-
     def get_firefox_binary_path() -> str:
         """Returns the path to the Firefox binary."""
-        import subprocess
 
         try:
             result = subprocess.run(
-                ["which", "firefox"], capture_output=True, text=True, check=True
+                ["which", "firefox"],
+                capture_output=True,
+                text=True,
+                check=True,
             )
             return result.stdout.strip()
         except subprocess.CalledProcessError:
@@ -67,7 +70,9 @@ def navegador_firefox(
     firefox_options.add_argument("disable-infobars")
     firefox_options.add_argument("--window-size=1920,1080")
     firefox_options.set_preference("browser.download.folderList", 2)
-    firefox_options.set_preference("browser.download.manager.showWhenStarting", False)
+    firefox_options.set_preference(
+        "browser.download.manager.showWhenStarting", False
+    )
     firefox_options.set_preference(
         "browser.download.dir", str(path_download.absolute())
     )
@@ -85,10 +90,10 @@ def navegador_firefox(
     return navegador
 
 
-def espera_elemento_clicavel(navegador: WebDriver, by: str, value: str) -> None:
+def espera_elemento_clicavel(
+    navegador: WebDriver, by: str, value: str
+) -> None:
     # Bibliotecas
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
 
     # Esperando
     wait = WebDriverWait(navegador, 10)
@@ -99,8 +104,6 @@ def espera_elemento_clicavel(navegador: WebDriver, by: str, value: str) -> None:
 
 def espera_elemento_visivel(navegador: WebDriver, by: str, value: str) -> None:
     # Bibliotecas
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
 
     # Esperando
     wait = WebDriverWait(navegador, 10)
