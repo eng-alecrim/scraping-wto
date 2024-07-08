@@ -27,7 +27,7 @@ ignr = "^2.2"
 [tool.ruff]
 line-length = 79
 extend-exclude = ["migrations"]
-extend-include = ["*.ipynb"]
+# extend-include = ["*.ipynb"]
 
 [tool.ruff.lint]
 preview = true
@@ -47,7 +47,7 @@ addopts = "-p no:warnings"
 lint = "ruff check . && ruff check . --diff"
 format = "ruff check . --fix && ruff format ."
 pre_test = "task lint"
-test = "pytest -s -x --cov=fast_zero -vv"
+test = "pytest -s -x --cov=scraping_wto -vv"
 post_test = "coverage html"
 jupyter = "python -m jupyterlab"
 
