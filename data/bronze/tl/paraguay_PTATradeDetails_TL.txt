@@ -1,0 +1,1 @@
+ReporterCode	PartnerCode	PartnerName	TL	ProductDescription	DutyType/DutyCode	National Description	PrefEligible	PrefEntering	PrefEligibleEntMFN	PrefEntOther	
