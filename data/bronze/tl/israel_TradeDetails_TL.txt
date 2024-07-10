@@ -1,1 +1,0 @@
-QueryName	Base Nomenclature	Classification	Reporter	ReporterCode	Year	SubID	TL	TLS	Value	NatValue	Quantity	Abbreviation	Share	Rank	Partner	Name	UnitValue	Record Status	
