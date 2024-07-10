@@ -134,7 +134,7 @@ def empilha_relatorios() -> None:
     )
     for i, relatorio in enumerate(RELATORIOS, 1):
         t_0 = time()
-        path_destino = DIR_DESTINO / f"{relatorio.nome.lower().replace(" ", "_")}.csv"
+        path_destino = DIR_DESTINO / f"{relatorio.nome.lower().replace(' ', '_')}.csv"
         if path_destino.exists():
             print(
                 f"✅ ({i}/{len(RELATORIOS)}) Relatórios '{relatorio.nome}' já foram empilhados!\n"
