@@ -15,7 +15,7 @@ assert NOME_PROJETO is not None
 
 
 def arquivo_ja_extraido(arquivo: Path, dir_destino: Path) -> bool:
-    matches = list(dir_destino.glob(f"*{arquivo.name.split("_TL")[0]}*"))
+    matches = list(dir_destino.glob(f"*{arquivo.name.split('_TL')[0]}*"))
     if matches:
         return True
     return False
