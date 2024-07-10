@@ -1,6 +1,7 @@
 import os
 import re
 import unicodedata
+import zipfile as zip
 from pathlib import Path
 from random import randint
 from time import sleep
@@ -11,6 +12,36 @@ from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv())
 NOME_PROJETO = os.getenv("NOME_PROJETO")
 assert NOME_PROJETO is not None
+
+
+def arquivo_ja_extraido(arquivo: Path, dir_destino: Path) -> bool:
+    matches = list(dir_destino.glob(f"*{arquivo.name.split("_TL")[0]}*"))
+    if matches:
+        return True
+    return False
+
+
+def extraindo_todos_arquivos(
+    dir_arquivos_zip: Path, dir_destino: Path
+) -> None:
+    arquivos_zip = dir_arquivos_zip.glob(pattern="*.zip")
+
+    print(
+        """\n#################################
+    ### 📦 EXTRAINDO ARQUIVOS ZIP ###
+    #################################\n\n"""
+    )
+
+    for arquivo_zip in arquivos_zip:
+        if not arquivo_ja_extraido(arquivo_zip, dir_destino):
+            print(f"📦 Extraindo '{arquivo_zip.name}' . . .")
+            zip_file = zip.ZipFile(file=arquivo_zip, mode="r")
+            zip_file.extractall(path=dir_destino)
+            print(f"✅ '{arquivo_zip.name}' foi extraído com sucesso!\n")
+        else:
+            print(f"✅ '{arquivo_zip.name}' já foi extraído!\n")
+
+    return None
 
 
 def get_path_projeto(
