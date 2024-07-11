@@ -128,7 +128,7 @@ def rename_duplicates(input_list: List[str]) -> List[str]:
 
 def empilha_relatorios() -> None:
     print(
-        """################################
+        """\n################################
 ### 🏗️ EMPILHANDO RELATÓRIOS ###
 ################################\n"""
     )

@@ -21,15 +21,13 @@ def arquivo_ja_extraido(arquivo: Path, dir_destino: Path) -> bool:
     return False
 
 
-def extraindo_todos_arquivos(
-    dir_arquivos_zip: Path, dir_destino: Path
-) -> None:
+def extraindo_todos_arquivos(dir_arquivos_zip: Path, dir_destino: Path) -> None:
     arquivos_zip = dir_arquivos_zip.glob(pattern="*.zip")
 
     print(
         """\n#################################
-    ### 📦 EXTRAINDO ARQUIVOS ZIP ###
-    #################################\n\n"""
+### 📦 EXTRAINDO ARQUIVOS ZIP ###
+#################################\n\n"""
     )
 
     for arquivo_zip in arquivos_zip:
@@ -69,9 +67,7 @@ def normaliza_str(input_str: str) -> str:
 
     # Normalizando o texto conforme a forma NFC
     nfkd_form = unicodedata.normalize("NFKD", input_str)
-    output_str = "".join([
-        c for c in nfkd_form if not unicodedata.combining(c)
-    ])
+    output_str = "".join([c for c in nfkd_form if not unicodedata.combining(c)])
 
     # Removendo as possíveis tags de HTML
     regex_tags = r"</?.>"
