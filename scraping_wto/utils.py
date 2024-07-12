@@ -1,3 +1,7 @@
+# =============================================================================
+# BIBLIOTECAS E MÓDULOS
+# =============================================================================
+
 import os
 import re
 import unicodedata
@@ -9,9 +13,21 @@ from typing import Callable, Optional, Union
 
 from dotenv import find_dotenv, load_dotenv
 
+# =============================================================================
+# CONSTANTES
+# =============================================================================
+
 load_dotenv(find_dotenv())
 NOME_PROJETO = os.getenv("NOME_PROJETO")
 assert NOME_PROJETO is not None
+
+# =============================================================================
+# FUNÇÕES
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Verifica se um arquivo já foi extraído
+# -----------------------------------------------------------------------------
 
 
 def arquivo_ja_extraido(arquivo: Path, dir_destino: Path) -> bool:
@@ -19,6 +35,26 @@ def arquivo_ja_extraido(arquivo: Path, dir_destino: Path) -> bool:
     if matches:
         return True
     return False
+
+
+# -----------------------------------------------------------------------------
+# Extrai um arquivo zip
+# -----------------------------------------------------------------------------
+
+
+def extrai_arquivo(path_arquivo: Path, dir_destino: Optional[Path]) -> None:
+
+    print(f"📦 Extraindo '{path_arquivo.name}' . . .")
+    zip_file = zip.ZipFile(file=path_arquivo, mode="r")
+    zip_file.extractall(path=dir_destino if not None else path_arquivo.parent)
+    print(f"✅ '{path_arquivo.name}' foi extraído com sucesso!\n")
+
+    return None
+
+
+# -----------------------------------------------------------------------------
+# Extrai todos os ZIP de um determinado diretório
+# -----------------------------------------------------------------------------
 
 
 def extraindo_todos_arquivos(dir_arquivos_zip: Path, dir_destino: Path) -> None:
@@ -32,14 +68,16 @@ def extraindo_todos_arquivos(dir_arquivos_zip: Path, dir_destino: Path) -> None:
 
     for arquivo_zip in arquivos_zip:
         if not arquivo_ja_extraido(arquivo_zip, dir_destino):
-            print(f"📦 Extraindo '{arquivo_zip.name}' . . .")
-            zip_file = zip.ZipFile(file=arquivo_zip, mode="r")
-            zip_file.extractall(path=dir_destino)
-            print(f"✅ '{arquivo_zip.name}' foi extraído com sucesso!\n")
+            extrai_arquivo(arquivo_zip, dir_destino)
         else:
             print(f"✅ '{arquivo_zip.name}' já foi extraído!\n")
 
     return None
+
+
+# -----------------------------------------------------------------------------
+# Retorna o path da raiz do projeto
+# -----------------------------------------------------------------------------
 
 
 def get_path_projeto(
@@ -49,6 +87,11 @@ def get_path_projeto(
         return dir_atual
 
     return get_path_projeto(dir_atual.parent, nome_projeto)
+
+
+# -----------------------------------------------------------------------------
+# Normaliza uma string
+# -----------------------------------------------------------------------------
 
 
 def normaliza_str(input_str: str) -> str:
@@ -90,9 +133,12 @@ def normaliza_str(input_str: str) -> str:
     return ""
 
 
-def normaliza_nomes(input_str: Optional[str]) -> Optional[str]:
-    if input_str is None:
-        return None
+# -----------------------------------------------------------------------------
+# Normaliza o nome do país
+# -----------------------------------------------------------------------------
+
+
+def normaliza_nomes(input_str: str) -> str:
 
     output_str = normaliza_str(input_str)
     output_str = output_str.replace(" ", "_")
@@ -103,8 +149,28 @@ def normaliza_nomes(input_str: Optional[str]) -> Optional[str]:
     return input_str
 
 
-def tempo_espera_aleatorio() -> None:
-    tempo_sleep = randint(75, 125) / 100
+# -----------------------------------------------------------------------------
+# Faz o código dormir por um tempo aleatório (default: entre .75~1.25s)
+# -----------------------------------------------------------------------------
+
+
+def tempo_espera_aleatorio(min: int = 75, max: int = 125) -> None:
+
+    tempo_sleep = randint(min, max) / 100
     sleep(tempo_sleep)
 
     return None
+
+
+# -----------------------------------------------------------------------------
+# Extraí o nome de um país a partir de uma string <- APENAS ARQ DOWNLOADS
+# -----------------------------------------------------------------------------
+
+
+def extrai_nome_pais(texto: str) -> str:
+
+    regex = r".*/(.*)_TL.*"
+
+    if re.findall(regex, texto):
+        return re.findall(regex, texto)[0]
+    return ""

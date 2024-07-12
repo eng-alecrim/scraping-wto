@@ -1,3 +1,7 @@
+# =============================================================================
+# BIBLIOTECAS E MÓDULOS
+# =============================================================================
+
 import subprocess
 from pathlib import Path
 
@@ -5,10 +9,19 @@ import requests
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service as GeckoService
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from scraping_wto.utils import get_path_projeto
+
+# =============================================================================
+# FUNÇÕES
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Faz download do geckdriver, caso precise
+# -----------------------------------------------------------------------------
 
 
 def download_geckodriver(
@@ -32,6 +45,11 @@ def download_geckodriver(
         download_f.write(response.content)
 
     return None
+
+
+# -----------------------------------------------------------------------------
+# Retorna um WebDriver do Firefox via Selenium
+# -----------------------------------------------------------------------------
 
 
 def navegador_firefox(
@@ -70,9 +88,7 @@ def navegador_firefox(
     firefox_options.add_argument("disable-infobars")
     firefox_options.add_argument("--window-size=1920,1080")
     firefox_options.set_preference("browser.download.folderList", 2)
-    firefox_options.set_preference(
-        "browser.download.manager.showWhenStarting", False
-    )
+    firefox_options.set_preference("browser.download.manager.showWhenStarting", False)
     firefox_options.set_preference(
         "browser.download.dir", str(path_download.absolute())
     )
@@ -90,33 +106,68 @@ def navegador_firefox(
     return navegador
 
 
+# -----------------------------------------------------------------------------
+# Espera que um elemento web esteja visível antes de retorná-lo
+# -----------------------------------------------------------------------------
+
+
+def espera_elemento_visivel(
+    navegador: WebDriver, by: str, value: str, timeout: int = 10
+) -> WebElement:
+    return WebDriverWait(navegador, timeout).until(
+        EC.visibility_of_element_located((by, value))
+    )
+
+
+# -----------------------------------------------------------------------------
+# Espera que um elemento web esteja clicável antes de retorná-lo
+# -----------------------------------------------------------------------------
+
+
 def espera_elemento_clicavel(
-    navegador: WebDriver, by: str, value: str
-) -> None:
-    # Bibliotecas
-
-    # Esperando
-    wait = WebDriverWait(navegador, 10)
-    wait.until(EC.element_to_be_clickable((by, value)))
-
-    return None
+    navegador: WebDriver, by: str, value: str, timeout: int = 10
+) -> WebElement:
+    return WebDriverWait(navegador, timeout).until(
+        EC.element_to_be_clickable((by, value))
+    )
 
 
-def espera_elemento_visivel(navegador: WebDriver, by: str, value: str) -> None:
-    # Bibliotecas
+# -----------------------------------------------------------------------------
+# Espera que um elemento web esteja presente na página antes de retorná-lo
+# -----------------------------------------------------------------------------
 
-    # Esperando
-    wait = WebDriverWait(navegador, 10)
-    wait.until(EC.visibility_of_element_located((by, value)))
 
-    return None
+def espera_presenca_elemento(
+    navegador: WebDriver, by: str, value: str, timeout: int = 10
+) -> WebElement:
+    return WebDriverWait(navegador, timeout).until(
+        EC.presence_of_element_located((by, value))
+    )
+
+
+# -----------------------------------------------------------------------------
+# Clica em um botão a partir de um localizador
+# -----------------------------------------------------------------------------
 
 
 def clica_botao(navegador: WebDriver, by: str, value: str) -> None:
-    # Clicando
-    espera_elemento_clicavel(navegador, by, value)
-    botao = navegador.find_element(by, value)
+
+    botao = espera_elemento_clicavel(navegador, by, value)
     navegador.execute_script("arguments[0].scrollIntoView();", botao)
     navegador.execute_script("arguments[0].click();", botao)
+
+    return None
+
+
+# -----------------------------------------------------------------------------
+# Insere texto em um elemento a partir de um localizador
+# -----------------------------------------------------------------------------
+
+
+def insere_texto(navegador: WebDriver, by: str, value: str, texto: str) -> None:
+
+    caixa_texto = espera_presenca_elemento(navegador, by, value)
+    caixa_texto.clear()
+    caixa_texto.send_keys(texto)
 
     return None
