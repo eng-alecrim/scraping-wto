@@ -26,6 +26,7 @@ from scraping_wto.selenium_utils import (
     espera_elemento_visivel,
     espera_presenca_elemento,
     insere_texto,
+    navegador_firefox,
 )
 from scraping_wto.utils import (
     get_path_projeto,
@@ -130,6 +131,18 @@ def navegador_login(navegador: WebDriver) -> None:
     tempo_espera_aleatorio()
 
     return None
+
+
+# -----------------------------------------------------------------------------
+# Reinicia o navegador caso dê algum erro
+# -----------------------------------------------------------------------------
+
+
+def reinicia_navegador(navegador: WebDriver, **kwargs) -> WebDriver:
+    navegador.close()
+    navegador = navegador_firefox(**kwargs)
+    navegador_login(navegador)
+    return navegador
 
 
 # -----------------------------------------------------------------------------
