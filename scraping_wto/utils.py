@@ -2,6 +2,8 @@
 # BIBLIOTECAS E MÓDULOS
 # =============================================================================
 
+import logging
+import logging.config
 import os
 import re
 import unicodedata
@@ -13,6 +15,8 @@ from typing import Callable, Optional, Union
 
 from dotenv import find_dotenv, load_dotenv
 
+from scraping_wto.utils import get_path_projeto
+
 # =============================================================================
 # CONSTANTES
 # =============================================================================
@@ -20,6 +24,14 @@ from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv())
 NOME_PROJETO = os.getenv("NOME_PROJETO")
 assert NOME_PROJETO is not None
+
+DIR_PROJETO = get_path_projeto()
+assert isinstance(DIR_PROJETO, Path)
+
+logging.config.fileConfig(DIR_PROJETO / "config/logging.toml")
+LOGGER = logging.getLogger("logMain.info.debug")
+
+NUMERO_MAX_CHARS_WTO = 15
 
 # =============================================================================
 # FUNÇÕES
@@ -44,10 +56,12 @@ def arquivo_ja_extraido(arquivo: Path, dir_destino: Path) -> bool:
 
 def extrai_arquivo(path_arquivo: Path, dir_destino: Optional[Path]) -> None:
 
-    print(f"📦 Extraindo '{path_arquivo.name}' . . .")
+    LOGGER.debug(f"extrai_arquivo: 📦 Extraindo '{path_arquivo.name}' . . .")
     zip_file = zip.ZipFile(file=path_arquivo, mode="r")
     zip_file.extractall(path=dir_destino if not None else path_arquivo.parent)
-    print(f"✅ '{path_arquivo.name}' foi extraído com sucesso!\n")
+    LOGGER.debug(
+        f"extrai_arquivo: ✅ '{path_arquivo.name}' foi extraído com sucesso!\n"
+    )
 
     return None
 
@@ -60,17 +74,15 @@ def extrai_arquivo(path_arquivo: Path, dir_destino: Optional[Path]) -> None:
 def extraindo_todos_arquivos(dir_arquivos_zip: Path, dir_destino: Path) -> None:
     arquivos_zip = dir_arquivos_zip.glob(pattern="*.zip")
 
-    print(
-        """\n#################################
-### 📦 EXTRAINDO ARQUIVOS ZIP ###
-#################################\n\n"""
-    )
+    LOGGER.debug("extraindo_todos_arquivos: 📦 EXTRAINDO ARQUIVOS ZIP")
 
     for arquivo_zip in arquivos_zip:
         if not arquivo_ja_extraido(arquivo_zip, dir_destino):
             extrai_arquivo(arquivo_zip, dir_destino)
         else:
-            print(f"✅ '{arquivo_zip.name}' já foi extraído!\n")
+            LOGGER.debug(
+                f"extraindo_todos_arquivos: ✅ '{arquivo_zip.name}' já foi extraído!\n"
+            )
 
     return None
 
@@ -140,13 +152,16 @@ def normaliza_str(input_str: str) -> str:
 
 def normaliza_nomes(input_str: str) -> str:
 
-    output_str = normaliza_str(input_str)
+    output_str = normaliza_str(input_str[:NUMERO_MAX_CHARS_WTO])
     output_str = output_str.replace(" ", "_")
 
     if output_str:
+        assert (
+            len(output_str) <= NUMERO_MAX_CHARS_WTO
+        ), f"normaliza_nomes: ERRO! Nome normalizado com >{NUMERO_MAX_CHARS_WTO} chars."
         return output_str
 
-    return input_str
+    return input_str[:NUMERO_MAX_CHARS_WTO].lower().replace(" ", "_")
 
 
 # -----------------------------------------------------------------------------

@@ -2,6 +2,8 @@
 # BIBLIOTECAS E MÓDULOS
 # =============================================================================
 
+import logging
+import logging.config
 import re
 import unicodedata
 from collections import Counter
@@ -29,6 +31,13 @@ RELATORIOS = [
     TipoRelatorio(nome="Tariff Details", regex="*TariffDetails*.txt"),
     TipoRelatorio(nome="Trade Details", regex="*TradeDetails*.txt"),
 ]
+
+# -----------------------------------------------------------------------------
+# Configurando o logger
+# -----------------------------------------------------------------------------
+
+logging.config.fileConfig(DIR_PROJETO / "config/logging.toml")
+LOGGER = logging.getLogger("logMain.info.debug")
 
 # =============================================================================
 # FUNÇÕES
@@ -127,7 +136,7 @@ def rename_duplicates(input_list: List[str]) -> List[str]:
 
 
 def empilha_relatorios() -> None:
-    print(
+    LOGGER.debug(
         """\n################################
 ### 🏗️ EMPILHANDO RELATÓRIOS ###
 ################################\n"""
@@ -136,18 +145,18 @@ def empilha_relatorios() -> None:
         t_0 = time()
         path_destino = DIR_DESTINO / f"{relatorio.nome.lower().replace(' ', '_')}.csv"
         if path_destino.exists():
-            print(
-                f"✅ ({i}/{len(RELATORIOS)}) Relatórios '{relatorio.nome}' já foram empilhados!\n"
+            LOGGER.debug(
+                f"✅ ({i}/{len(RELATORIOS)}) Relatórios '{relatorio.nome}' já foram empilhados!"
             )
             continue
-        print(
+        LOGGER.debug(
             f"⏳ ({i}/{len(RELATORIOS)}) Empilhando relatórios sobre '{relatorio.nome}' . . ."
         )
         arquivos = DIR_DADOS.glob(pattern=relatorio.regex)
         csv_empilhado = reduce(f_reduce, arquivos, None)
         with open(path_destino, "w", encoding="utf-8") as csv_f:
             csv_f.write(csv_empilhado)
-        print(
-            f"✅ Relatórios '{relatorio.nome}' empilhados com sucesso!\n🕐 Tempo: {t_0 - time():.4f} s\n"
+        LOGGER.debug(
+            f"✅ Relatórios '{relatorio.nome}' empilhados com sucesso!\n🕐 Tempo: {t_0 - time():.4f} s"
         )
     return None

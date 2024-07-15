@@ -2,6 +2,8 @@
 # BIBLIOTECAS E MÓDULOS
 # =============================================================================
 
+import logging
+import logging.config
 import subprocess
 from pathlib import Path
 
@@ -14,6 +16,16 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from scraping_wto.utils import get_path_projeto
+
+# =============================================================================
+# CONSTANTES
+# =============================================================================
+
+DIR_PROJETO = get_path_projeto()
+assert isinstance(DIR_PROJETO, Path)
+
+logging.config.fileConfig(DIR_PROJETO / "config/logging.toml")
+LOGGER = logging.getLogger("logMain.info.debug")
 
 # =============================================================================
 # FUNÇÕES
@@ -37,7 +49,7 @@ def download_geckodriver(
         path_download.parent.mkdir(parents=True, exist_ok=True)
 
     if path_download.exists():
-        print(f"{path_download} já existe!")
+        LOGGER.debug(f"{path_download} já existe!")
         return None
 
     with open(path_download, "wb") as download_f:

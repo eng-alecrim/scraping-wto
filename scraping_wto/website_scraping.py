@@ -2,13 +2,15 @@
 # BIBLIOTECAS E MÓDULOS
 # =============================================================================
 
-import re
+import logging
+import logging.config
 import os
-import pandas as pd
+import re
 from pathlib import Path
 from time import sleep
 from typing import Callable, Optional, Tuple
 
+import pandas as pd
 import requests
 from dotenv import find_dotenv, load_dotenv
 from selenium.common import NoSuchElementException, TimeoutException
@@ -16,8 +18,11 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 
 from scraping_wto.controle_fluxo import (
-    remove_da_fila,
+    add_na_fila,
+    consulta_ja_feita,
+    erro_consulta,
     log_consulta_realizada_sucesso,
+    remove_da_fila,
 )
 from scraping_wto.schemas import Consulta
 from scraping_wto.selenium_utils import (
@@ -29,11 +34,11 @@ from scraping_wto.selenium_utils import (
     navegador_firefox,
 )
 from scraping_wto.utils import (
+    extrai_arquivo,
+    extrai_nome_pais,
     get_path_projeto,
     normaliza_nomes,
     tempo_espera_aleatorio,
-    extrai_arquivo,
-    extrai_nome_pais,
 )
 
 # =============================================================================
@@ -74,10 +79,26 @@ if (!linhaInfosPais) {
 # CONSTANTES
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+
 path_projeto = get_path_projeto()
 assert isinstance(path_projeto, Path)
 DIR_DOWNLOAD_ARQUIVOS = str(path_projeto / "data/bronze/tl/zip")
 DIR_DESTINO_UNZIP = path_projeto / "data/bronze/tl"
+
+# -----------------------------------------------------------------------------
+# Configurando o logger
+# -----------------------------------------------------------------------------
+
+logging.config.fileConfig(path_projeto / "config/logging.toml")
+LOGGER = logging.getLogger("logMain.info.debug")
+
+# -----------------------------------------------------------------------------
+# Scripts do JS
+# -----------------------------------------------------------------------------
+
 JS_SCRIPTS = ScriptsJS()
 
 # =============================================================================
@@ -104,15 +125,15 @@ def navegador_login(navegador: WebDriver) -> None:
     # Abrindo a página
     link_pagina = "https://tao.wto.org/welcome.aspx?ReturnUrl=%2fdefault.aspx"
     navegador.get(link_pagina)
-    print("Página web aberta!")
+    LOGGER.debug("navegador_login: Página web aberta!")
 
     # Inserindo o usuário
-    print("Inserindo o usuário. . .")
+    LOGGER.debug("navegador_login: Inserindo o usuário. . .")
     localizador_usuario = ("xpath", '//*[@id="ctl00_c_ctrLogin_UserName"]')
     insere_texto(navegador, *localizador_usuario, usuario)
 
     # Inserindo a senha
-    print("Inserindo a senha. . .")
+    LOGGER.debug("navegador_login: Inserindo a senha. . .")
     localizador_senha = ("xpath", '//*[@id="ctl00_c_ctrLogin_Password"]')
     insere_texto(navegador, *localizador_senha, senha)
 
@@ -127,7 +148,7 @@ def navegador_login(navegador: WebDriver) -> None:
     localizador_login = ("xpath", '//*[@id="ctl00_c_ctrLogin_LoginButton"]')
     clica_botao(navegador, *localizador_login)
 
-    print("LOGIN REALIZADO!")
+    LOGGER.debug("navegador_login: LOGIN REALIZADO!")
     tempo_espera_aleatorio()
 
     return None
@@ -157,9 +178,11 @@ def clica_consulta_pais(navegador: WebDriver, pais: str) -> None:
     )
 
     try:
-        clica_botao(navegador, *localizador_linha_pais)
+        botao = espera_elemento_clicavel(navegador, *localizador_linha_pais)
+        navegador.execute_script("arguments[0].click();", botao)
+        tempo_espera_aleatorio()
     except TimeoutException:
-        print("Não achou o país")
+        LOGGER.warning("clica_consulta_pais: Não achou o país")
 
     return None
 
@@ -188,7 +211,7 @@ def get_info_ultima_consulta_pais(
 def abrindo_popup_query(navegador: WebDriver) -> None:
     """Abrindo a janela de Query"""
 
-    print("Abrindo uma nova query . . .")
+    LOGGER.debug("abrindo_popup_query: Abrindo uma nova query . . .")
     localizador_nova_query = ("xpath", '//*[@id="ctl00_qsl_lbChangeQuery"]')
     clica_botao(navegador, *localizador_nova_query)
 
@@ -203,7 +226,7 @@ def abrindo_popup_query(navegador: WebDriver) -> None:
 def fechando_popup_query(navegador: WebDriver) -> None:
     """Clicando em 'continuar'"""
 
-    print("Confirmando a query . . .")
+    LOGGER.debug("fechando_popup_query: Confirmando a query . . .")
     localizador_continue = (
         "xpath",
         '//*[@id="ctl00_qsl_qs_pop_ctl00_bContinue"]',
@@ -273,13 +296,15 @@ def clica_botao_refresh(navegador: WebDriver) -> Optional[Callable]:
     try:
         sleep(5)
         _ = espera_elemento_clicavel(navegador, *localizador_botao_reload, 1)
-        print("🕙 Arquivo ainda não está pronto para download . . .")
+        LOGGER.debug(
+            "clica_botao_refresh: 🕙 Arquivo ainda não está pronto para download . . ."
+        )
         clica_botao(navegador, *localizador_botao_reload)
         em_espera(navegador)
         return clica_botao_refresh(navegador)
 
     except:
-        print("\n✅Arquivo pronto para download!\n")
+        LOGGER.debug("clica_botao_refresh: ✅Arquivo pronto para download!")
 
     return None
 
@@ -300,7 +325,7 @@ def get_link_download_pais(navegador: WebDriver, pais: str) -> str:
     link_ = elemento_link.get_attribute("href")
     assert (
         link_ is not None
-    ), f"💀 [!!! ERRO !!!]\nNão foi encontrado um link de download do {pais}!"
+    ), f"get_link_download_pais: 💀 [!!! ERRO !!!]\nNão foi encontrado um link de download do {pais}!"
 
     return link_
 
@@ -329,13 +354,17 @@ def download_arq(url_download: str, target_directory: str) -> Tuple[bool, str]:
         if response.status_code == SUCESSO:
             with open(path_arquivo, "wb") as f:
                 f.write(response.content)
-            print(f"✅ Arquivo salvo em: {path_arquivo}")
+            LOGGER.debug(f"download_arq: ✅ Arquivo salvo em: {path_arquivo}")
             return True, str(path_arquivo)
         else:
-            print(f"❌ Download do arquivo falhou. Status code: {response.status_code}")
+            LOGGER.warning(
+                f"download_arq: ❌ Download do arquivo falhou. Status code: {response.status_code}"
+            )
             return False, ""
     except requests.exceptions.Timeout:
-        print(f"💀 TimeoutError: Download falhou: {url_download}")
+        LOGGER.warning(
+            f"download_arq: 💀 TimeoutError: Download falhou: {url_download}"
+        )
         return False, ""
 
 
@@ -353,10 +382,10 @@ def deleta_relatorio_pais(navegador: WebDriver, pais: str) -> Optional[Callable]
     linha_pais = list(filter(f_filter, elementos_linha))
 
     if len(linha_pais) > 0:
-        print("✅ Relatório encontrado!")
+        LOGGER.debug("deleta_relatorio_pais: ✅ Relatório encontrado!")
         linha_pais = linha_pais[0]
     else:
-        print("❌ Relatório não encontrado!")
+        LOGGER.debug("deleta_relatorio_pais: ❌ Relatório não encontrado!")
         return None
 
     localizador_botao_deletar = ("xpath", ".//input[contains(@id, 'bDelete')]")
@@ -364,7 +393,7 @@ def deleta_relatorio_pais(navegador: WebDriver, pais: str) -> Optional[Callable]
     try:
         botao_deletar = linha_pais.find_element(*localizador_botao_deletar)
     except NoSuchElementException:
-        print("💀 Botão de deletar não encontrado!")
+        LOGGER.warning("deleta_relatorio_pais: 💀 Botão de deletar não encontrado!")
         return None
 
     navegador.execute_script("arguments[0].scrollIntoView();", botao_deletar)
@@ -420,6 +449,51 @@ def deleta_todos_relatorios(navegador: WebDriver) -> None:
 
 
 # -----------------------------------------------------------------------------
+# Gerenciador das consultas <- diz quais foram feitas, ou n, e cria a fila
+# -----------------------------------------------------------------------------
+
+
+def confere_dados_consulta_pais(navegador: WebDriver, pais: str) -> bool:
+
+    # -----------------------------------------------------------------------------
+    # Obtendo as infos da consulta (nome país, ano, importações, nomenclatura)
+    # -----------------------------------------------------------------------------
+
+    ultimos_dados_disponiveis = get_info_ultima_consulta_pais(navegador, pais)
+
+    # -----------------------------------------------------------------------------
+    # DEU ERRO! NoSuchElementException
+    # -----------------------------------------------------------------------------
+
+    if ultimos_dados_disponiveis is None:
+        LOGGER.warning(
+            f"confere_dados_consulta_pais: 💀 DEU ERRO! NoSuchElementException para '{pais}'!"
+        )
+        erro_consulta(pais)
+
+    # -----------------------------------------------------------------------------
+    # INSERIR NA LISTA DE CONSULTAS A SEREM FEITAS
+    # -----------------------------------------------------------------------------
+
+    elif not consulta_ja_feita(ultimos_dados_disponiveis):
+        LOGGER.debug(
+            f"confere_dados_consulta_pais: ❌ Consulta para '{pais}' não foi feita. Adicionada à fila!"
+        )
+        add_na_fila(ultimos_dados_disponiveis)
+
+    # -----------------------------------------------------------------------------
+    # Consulta já foi feita
+    # -----------------------------------------------------------------------------
+
+    else:
+        LOGGER.debug(
+            f"confere_dados_consulta_pais: ✅ Consulta para '{pais}' já foi feita!"
+        )
+
+    return True
+
+
+# -----------------------------------------------------------------------------
 # Fluxo completo para download de uma consulta
 # -----------------------------------------------------------------------------
 
@@ -437,8 +511,7 @@ def download_consulta(navegador: WebDriver, consulta: Consulta) -> None:
     # -----------------------------------------------------------------------------
 
     if existem_relatorios_na_fila(navegador):
-        while existe_botao_refresh(navegador):
-            clica_botao_refresh(navegador)
+        clica_botao_refresh(navegador)
         deleta_todos_relatorios(navegador)
 
     # -----------------------------------------------------------------------------
@@ -448,7 +521,7 @@ def download_consulta(navegador: WebDriver, consulta: Consulta) -> None:
     abrindo_popup_query(navegador)
     em_espera(navegador)
 
-    print("Selecionando o país . . .")
+    LOGGER.debug(f"download_consulta: Selecionando o país '{consulta.COUNTRY}' . . .")
 
     # Esperando o elemento ficar visivel
     localizador_tabela_paises = ("css selector", "#ctl00_qsl_qs_pop_ctl00_dgCountry")
@@ -465,16 +538,18 @@ def download_consulta(navegador: WebDriver, consulta: Consulta) -> None:
     # -----------------------------------------------------------------------------
 
     tempo_espera_aleatorio()
-    print("\nInserindo informações . . .")
+    LOGGER.debug("download_consulta: Inserindo informações . . .")
 
     # Selecionando o tipo de relatório
 
-    print("(1/4) Escolhendo o tipo de relatório")
+    LOGGER.debug("download_consulta: (1/4) Escolhendo o tipo de relatório.")
     localizador_dropdown = ("xpath", '//*[@id="ctl00_c_drpReport"]')
     botao_tipo_relatorio_dropdown = espera_elemento_visivel(
         navegador, *localizador_dropdown
     )
     botao_tipo_relatorio_dropdown.click()
+
+    tempo_espera_aleatorio()
 
     try:
         localizador_tl = ("xpath", "//option[contains(@value, 'TL')]")
@@ -482,11 +557,11 @@ def download_consulta(navegador: WebDriver, consulta: Consulta) -> None:
         botao_tipo_relatorio.click()
         em_espera(navegador)
     except TimeoutException:
-        raise Exception("NÃO EXISTE TL PARA ESTE PAÍS!")
+        raise Exception("download_consulta: NÃO EXISTE TL PARA ESTE PAÍS!")
 
     # Selecionando o formato do relatório
 
-    print("(2/4) Escolhendo o formato de relatório")
+    LOGGER.debug("download_consulta: (2/4) Escolhendo o formato de relatório.")
     localizador_dropdown = ("xpath", '//*[@id="ctl00_c_pickFile_ddFormat"]')
     botao_dropdown = espera_elemento_clicavel(navegador, *localizador_dropdown)
     navegador.execute_script("arguments[0].value = 'txt';", botao_dropdown)
@@ -495,15 +570,17 @@ def download_consulta(navegador: WebDriver, consulta: Consulta) -> None:
 
     # Inserindo o nome do arquivo
 
-    print("(3/4) Inserindo o nome do arquivo")
+    LOGGER.debug("download_consulta: (3/4) Inserindo o nome do arquivo.")
     localizador_nome_arquivo = ("xpath", '//*[@id="ctl00_c_pickFile_txtFileName"]')
     insere_texto(
-        navegador, *localizador_nome_arquivo, normaliza_nomes(consulta.COUNTRY)
+        navegador,
+        *localizador_nome_arquivo,
+        normaliza_nomes(consulta.COUNTRY),
     )
 
     # Clicando em exportar
 
-    print("(4/4) Clicando em exportar relatório\n")
+    LOGGER.debug("download_consulta: (4/4) Clicando em exportar relatório")
     localizador_export = ("xpath", '//*[@id="ctl00_c_pickFile_btnExport"]')
     clica_botao(navegador, *localizador_export)
 
@@ -513,8 +590,7 @@ def download_consulta(navegador: WebDriver, consulta: Consulta) -> None:
     # 5 Clicando no botão de refresh
     # -----------------------------------------------------------------------------
 
-    while existe_botao_refresh(navegador):
-        clica_botao_refresh(navegador)
+    clica_botao_refresh(navegador)
 
     # -----------------------------------------------------------------------------
     # 6 Fazendo download
@@ -527,7 +603,9 @@ def download_consulta(navegador: WebDriver, consulta: Consulta) -> None:
     )
 
     if not download_sucesso:
-        raise Exception("O DOWNLOAD NÃO FOI BEM-SUCEDIDO!")
+        raise Exception(
+            f"download_consulta: '{consulta.COUNTRY}' O DOWNLOAD NÃO FOI BEM-SUCEDIDO!"
+        )
 
     # -----------------------------------------------------------------------------
     # 7 Extraindo o arquivo
@@ -548,17 +626,19 @@ def download_consulta(navegador: WebDriver, consulta: Consulta) -> None:
     nome_pais_no_arquivo_zip = extrai_nome_pais(path_arquivo_download)
 
     if nome_pais_no_arquivo_unzip != nome_pais_no_arquivo_zip:
-        raise Exception("DADOS DE DOWNLOAD SÃO DIFERENTES DOS DADOS CONSULTADOS!")
-
-    # -----------------------------------------------------------------------------
-    # 8.1 CASO NÃO SEJA: DELETAR ARQUIVO > RECOMEÇAR A PESQUISA
-    # -----------------------------------------------------------------------------
+        raise Exception(
+            f"download_consulta: '{consulta.COUNTRY}' DADOS DE DOWNLOAD SÃO DIFERENTES DOS DADOS CONSULTADOS!"
+        )
 
     # -----------------------------------------------------------------------------
     # 9 Colocando na lista de consultas realizadas com sucesso
     # -----------------------------------------------------------------------------
 
     remove_da_fila(consulta)
+    LOGGER.info(f"download_consulta: '{consulta.COUNTRY}' removido da fila.")
     log_consulta_realizada_sucesso(consulta)
+    LOGGER.info(
+        f"download_consulta: '{consulta.COUNTRY}' inserido no log de consulta com sucesso."
+    )
 
     return None
