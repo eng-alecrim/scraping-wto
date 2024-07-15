@@ -177,5 +177,5 @@ pyrightconfig.json
 
 # Generated using ignr.py - github.com/Antrikshy/ignr.py
 temp/
-data/bronze/tl/empilhado/
 data/
+log/
