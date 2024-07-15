@@ -15,21 +15,43 @@ from typing import Callable, Optional, Union
 
 from dotenv import find_dotenv, load_dotenv
 
-from scraping_wto.utils import get_path_projeto
-
 # =============================================================================
 # CONSTANTES
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Retorna o path da raiz do projeto
+# -----------------------------------------------------------------------------
 
 load_dotenv(find_dotenv())
 NOME_PROJETO = os.getenv("NOME_PROJETO")
 assert NOME_PROJETO is not None
 
+
+def get_path_projeto(
+    dir_atual: Path = Path.cwd(), nome_projeto: str = NOME_PROJETO
+) -> Union[Callable, Path]:
+    if dir_atual.name == nome_projeto:
+        return dir_atual
+
+    return get_path_projeto(dir_atual.parent, nome_projeto)
+
+
+# -----------------------------------------------------------------------------
+# Configurando o logger
+# -----------------------------------------------------------------------------
+
 DIR_PROJETO = get_path_projeto()
 assert isinstance(DIR_PROJETO, Path)
+DIR_LOG = DIR_PROJETO / "log"
+DIR_LOG.mkdir(exist_ok=True, parents=True)
 
 logging.config.fileConfig(DIR_PROJETO / "config/logging.toml")
 LOGGER = logging.getLogger("logMain.info.debug")
+
+# -----------------------------------------------------------------------------
+# Número máximo de chars para um arquivo na WTO
+# -----------------------------------------------------------------------------
 
 NUMERO_MAX_CHARS_WTO = 15
 
@@ -59,9 +81,7 @@ def extrai_arquivo(path_arquivo: Path, dir_destino: Optional[Path]) -> None:
     LOGGER.debug(f"extrai_arquivo: 📦 Extraindo '{path_arquivo.name}' . . .")
     zip_file = zip.ZipFile(file=path_arquivo, mode="r")
     zip_file.extractall(path=dir_destino if not None else path_arquivo.parent)
-    LOGGER.debug(
-        f"extrai_arquivo: ✅ '{path_arquivo.name}' foi extraído com sucesso!\n"
-    )
+    LOGGER.debug(f"extrai_arquivo: ✅ '{path_arquivo.name}' foi extraído com sucesso!")
 
     return None
 
@@ -81,24 +101,10 @@ def extraindo_todos_arquivos(dir_arquivos_zip: Path, dir_destino: Path) -> None:
             extrai_arquivo(arquivo_zip, dir_destino)
         else:
             LOGGER.debug(
-                f"extraindo_todos_arquivos: ✅ '{arquivo_zip.name}' já foi extraído!\n"
+                f"extraindo_todos_arquivos: ✅ '{arquivo_zip.name}' já foi extraído!"
             )
 
     return None
-
-
-# -----------------------------------------------------------------------------
-# Retorna o path da raiz do projeto
-# -----------------------------------------------------------------------------
-
-
-def get_path_projeto(
-    dir_atual: Path = Path.cwd(), nome_projeto: str = NOME_PROJETO
-) -> Union[Callable, Path]:
-    if dir_atual.name == nome_projeto:
-        return dir_atual
-
-    return get_path_projeto(dir_atual.parent, nome_projeto)
 
 
 # -----------------------------------------------------------------------------

@@ -20,6 +20,13 @@ from scraping_wto.website_scraping import (
 # =============================================================================
 
 # -----------------------------------------------------------------------------
+# Configurando o navegador
+# -----------------------------------------------------------------------------
+
+USAR_FIREFOX_PADRAO = False
+HEADLESS = True
+
+# -----------------------------------------------------------------------------
 # Configurando o logger
 # -----------------------------------------------------------------------------
 
@@ -55,7 +62,9 @@ def fila_vazia() -> bool:
 
 
 def loop_consulta() -> None:
-    navegador = navegador_firefox(use_default_firefox_bin=False, headless=False)
+    navegador = navegador_firefox(
+        use_default_firefox_bin=USAR_FIREFOX_PADRAO, headless=HEADLESS
+    )
     navegador_login(navegador=navegador)
 
     with open(PATH_FILA_CONSULTAS, "rb") as pkl_f:
@@ -103,7 +112,9 @@ def main() -> None:
     # Abrindo o navegador
     # -----------------------------------------------------------------------------
 
-    navegador = navegador_firefox(use_default_firefox_bin=False, headless=False)
+    navegador = navegador_firefox(
+        use_default_firefox_bin=USAR_FIREFOX_PADRAO, headless=HEADLESS
+    )
     LOGGER.info("main: Navegador aberto.")
 
     # -----------------------------------------------------------------------------
@@ -129,7 +140,7 @@ def main() -> None:
 
     LOGGER.info("main: Conferindo dados disponíveis para consulta de cada país.")
     for n, pais in enumerate(lista_paises, 1):
-        LOGGER.debug(f"({n}/{len(lista_paises)}) '{pais.upper()}'")
+        LOGGER.debug(f"main: ({n}/{len(lista_paises)}) '{pais.upper()}'")
         try:
             confere_dados_consulta_pais(navegador=navegador, pais=pais)
         except Exception as e:

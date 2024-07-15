@@ -49,7 +49,7 @@ def download_geckodriver(
         path_download.parent.mkdir(parents=True, exist_ok=True)
 
     if path_download.exists():
-        LOGGER.debug(f"{path_download} já existe!")
+        LOGGER.debug(f"download_geckodriver: {path_download} já existe!")
         return None
 
     with open(path_download, "wb") as download_f:

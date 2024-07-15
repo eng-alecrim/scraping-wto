@@ -146,17 +146,17 @@ def empilha_relatorios() -> None:
         path_destino = DIR_DESTINO / f"{relatorio.nome.lower().replace(' ', '_')}.csv"
         if path_destino.exists():
             LOGGER.debug(
-                f"✅ ({i}/{len(RELATORIOS)}) Relatórios '{relatorio.nome}' já foram empilhados!"
+                f"empilha_relatorios: ✅ ({i}/{len(RELATORIOS)}) Relatórios '{relatorio.nome}' já foram empilhados!"
             )
             continue
         LOGGER.debug(
-            f"⏳ ({i}/{len(RELATORIOS)}) Empilhando relatórios sobre '{relatorio.nome}' . . ."
+            f"empilha_relatorios: ⏳ ({i}/{len(RELATORIOS)}) Empilhando relatórios sobre '{relatorio.nome}' . . ."
         )
         arquivos = DIR_DADOS.glob(pattern=relatorio.regex)
         csv_empilhado = reduce(f_reduce, arquivos, None)
         with open(path_destino, "w", encoding="utf-8") as csv_f:
             csv_f.write(csv_empilhado)
         LOGGER.debug(
-            f"✅ Relatórios '{relatorio.nome}' empilhados com sucesso!\n🕐 Tempo: {t_0 - time():.4f} s"
+            f"empilha_relatorios: ✅ Relatórios '{relatorio.nome}' empilhados com sucesso!\n🕐 Tempo: {t_0 - time():.4f} s"
         )
     return None

@@ -2,8 +2,6 @@
 # BIBLIOTECAS E MÓDULOS
 # =============================================================================
 
-import logging
-import logging.config
 import os
 import re
 from pathlib import Path
@@ -24,6 +22,7 @@ from scraping_wto.controle_fluxo import (
     log_consulta_realizada_sucesso,
     remove_da_fila,
 )
+from scraping_wto.log import LOGGER
 from scraping_wto.schemas import Consulta
 from scraping_wto.selenium_utils import (
     clica_botao,
@@ -87,13 +86,6 @@ path_projeto = get_path_projeto()
 assert isinstance(path_projeto, Path)
 DIR_DOWNLOAD_ARQUIVOS = str(path_projeto / "data/bronze/tl/zip")
 DIR_DESTINO_UNZIP = path_projeto / "data/bronze/tl"
-
-# -----------------------------------------------------------------------------
-# Configurando o logger
-# -----------------------------------------------------------------------------
-
-logging.config.fileConfig(path_projeto / "config/logging.toml")
-LOGGER = logging.getLogger("logMain.info.debug")
 
 # -----------------------------------------------------------------------------
 # Scripts do JS
@@ -325,7 +317,7 @@ def get_link_download_pais(navegador: WebDriver, pais: str) -> str:
     link_ = elemento_link.get_attribute("href")
     assert (
         link_ is not None
-    ), f"get_link_download_pais: 💀 [!!! ERRO !!!]\nNão foi encontrado um link de download do {pais}!"
+    ), f"get_link_download_pais: 💀 [!!! ERRO !!!] Não foi encontrado um link de download do {pais}!"
 
     return link_
 
